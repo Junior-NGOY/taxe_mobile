@@ -1,20 +1,63 @@
+import './expo-modules-setup';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import useCachedResources from './hooks/useCachedResources';
+import useColorScheme from './hooks/useColorScheme';
+import Navigation from './navigation';
+// Local context
+import { LocalDataContext} from './context/dataContext';
+// Custom contexts
+import { Provider as AuthContextProvider } from './context/authContext';
+import { Provider as FeedBackProvider,  } from './feedback/context';
+import { Provider as SessionProvider } from './session/context';
+import { Provider as WorkSessionProvider } from './context/workSession';
+import { MySnackbar } from './feedback/Snackbar';
+import { Provider, DefaultTheme } from 'react-native-paper';
+import { OperationStatus, useDevice } from './hooks/useDevice';
+import Colors from './constants/Colors';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
-}
+    const isLoadingComplete = useCachedResources();
+    const colorScheme = useColorScheme();
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+    const localData = useDevice();
+
+    const theme = {
+        ...DefaultTheme,
+        colors: {
+            ...DefaultTheme.colors,
+            text: Colors[colorScheme].text
+        }
+    };
+
+    if (!isLoadingComplete || (localData.status !== OperationStatus.finish && localData.status !== OperationStatus.error)) {
+        return null;
+    } else {
+        return (
+            <SafeAreaProvider>
+                <Provider 
+                    settings={{
+                        icon: ({name, ...props}: { name: any }) => <MaterialCommunityIcons name={name} {...props} />,
+                    }}
+                    theme={theme}>
+                    <FeedBackProvider>
+                        <SessionProvider>
+                            <WorkSessionProvider>
+                                <AuthContextProvider>
+                                    <LocalDataContext.Provider value={localData}>
+                                        <Navigation colorScheme={colorScheme} />
+                                    </LocalDataContext.Provider>
+                                    <StatusBar />
+                                    <MySnackbar />
+                                </AuthContextProvider>
+                            </WorkSessionProvider>
+                        </SessionProvider>
+                    </FeedBackProvider>
+                </Provider>
+            </SafeAreaProvider>
+        );
+    }
+}

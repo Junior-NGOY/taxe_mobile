@@ -1,30 +1,58 @@
 {
   "expo": {
-    "name": "mob-temp",
-    "slug": "mob-temp",
-    "version": "1.0.0",
+    "name": "SID Taxe Parking",
+    "description": "Application de suivi des taxes avec prise en charge du template dynamic",
+    "slug": "sid-taxe-parking",
+    "version": "3.3.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "icon": "./assets/images/icon.png",
+    "scheme": "sidtaxeparking",
+    "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Cette application utilise la caméra pour scanner les codes QR des véhicules.",
+        "NSMicrophoneUsageDescription": "Cette application peut utiliser le microphone pour des fonctionnalités audio."
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "package": "com.sid.taxeparking",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "CAMERA",
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT"
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/images/favicon.ico",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-camera"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d8231ebf-fcf4-4b91-83f0-9df7da27ce8b"
+      }
     }
   }
 }

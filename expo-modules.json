@@ -1,0 +1,33 @@
+{
+  "android": {
+    "modules": [
+      "expo-camera",
+      "expo-constants",
+      "expo-asset",
+      "expo-font",
+      "expo-splash-screen",
+      "expo-system-ui",
+      "expo-linking",
+      "expo-intent-launcher",
+      "expo-print",
+      "expo-checkbox"
+    ]
+  },
+  "ios": {
+    "modules": [
+      "expo-camera",
+      "expo-constants",
+      "expo-asset",
+      "expo-font", 
+      "expo-splash-screen",
+      "expo-system-ui",
+      "expo-linking",
+      "expo-intent-launcher",
+      "expo-print",
+      "expo-checkbox"
+    ]
+  },
+  "web": {
+    "modules": []
+  }
+}
