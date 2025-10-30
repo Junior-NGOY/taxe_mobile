@@ -1,31 +1,38 @@
 
 
+// Cache des RegExp pour éviter de les recréer à chaque impression (optimisation performance)
+const REGEX_CACHE = {
+    title: /{{ title }}/ig,
+    site: /{{ site }}/ig,
+    matricule: /{{ matricule }}/ig,
+    number: /{{ number }}/ig,
+    vehicleType: /{{ vehicle_type }}/ig,
+    perceptor: /{{ perceptor }}/ig,
+    price: /{{ price }}/ig,
+    date: /{{ date }}/ig,
+    hour: /{{ hour }}/ig,
+    qrCode: /{{ qr_code }}/ig,
+    place: /{{ place }}/ig,
+    street: /{{ street }}/ig
+};
+
 export function replace(template: string, values : TemplateValues) : string
 {
     let newTemplate = template;
-    if(values.title) newTemplate = newTemplate.replace(new RegExp('{{ title }}', 'ig'), values.title);
-
-    if(values.site) newTemplate = newTemplate.replace(new RegExp('{{ site }}', 'ig'), values.site);
-
-    if(values.matricule) newTemplate = newTemplate.replace(new RegExp('{{ matricule }}', 'ig'), values.matricule);
-
-    if(values.number) newTemplate = newTemplate.replace(new RegExp('{{ number }}', 'ig'), values.number);
-
-    if(values.vehicleType) newTemplate = newTemplate.replace(new RegExp('{{ vehicle_type }}', 'ig'), values.vehicleType);
-
-    if(values.perceptor) newTemplate = newTemplate.replace(new RegExp('{{ perceptor }}', 'ig'), values.perceptor);
-
-    if(values.price) newTemplate = newTemplate.replace(new RegExp('{{ price }}', 'ig'), values.price);
-
-    if(values.date) newTemplate = newTemplate.replace(new RegExp('{{ date }}', 'ig'), values.date);
     
-    if(values.hour) newTemplate = newTemplate.replace(new RegExp('{{ hour }}', 'ig'), values.hour);
-    
-    if(values.qrCode) newTemplate = newTemplate.replace(new RegExp('{{ qr_code }}', 'ig'), values.qrCode);
-    
-    if(values.place) newTemplate = newTemplate.replace(new RegExp('{{ place }}', 'ig'), values.place);
-    
-    if(values.street) newTemplate = newTemplate.replace(new RegExp('{{ street }}', 'ig'), values.street);
+    // Utiliser les RegExp cachées au lieu d'en créer de nouvelles à chaque appel
+    if(values.title) newTemplate = newTemplate.replace(REGEX_CACHE.title, values.title);
+    if(values.site) newTemplate = newTemplate.replace(REGEX_CACHE.site, values.site);
+    if(values.matricule) newTemplate = newTemplate.replace(REGEX_CACHE.matricule, values.matricule);
+    if(values.number) newTemplate = newTemplate.replace(REGEX_CACHE.number, values.number);
+    if(values.vehicleType) newTemplate = newTemplate.replace(REGEX_CACHE.vehicleType, values.vehicleType);
+    if(values.perceptor) newTemplate = newTemplate.replace(REGEX_CACHE.perceptor, values.perceptor);
+    if(values.price) newTemplate = newTemplate.replace(REGEX_CACHE.price, values.price);
+    if(values.date) newTemplate = newTemplate.replace(REGEX_CACHE.date, values.date);
+    if(values.hour) newTemplate = newTemplate.replace(REGEX_CACHE.hour, values.hour);
+    if(values.qrCode) newTemplate = newTemplate.replace(REGEX_CACHE.qrCode, values.qrCode);
+    if(values.place) newTemplate = newTemplate.replace(REGEX_CACHE.place, values.place);
+    if(values.street) newTemplate = newTemplate.replace(REGEX_CACHE.street, values.street);
 
     return newTemplate;
 }

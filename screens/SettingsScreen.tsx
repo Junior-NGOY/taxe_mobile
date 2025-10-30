@@ -16,66 +16,109 @@ import { PROD_BASE_URL, TEST_BASE_URL, LOCAL_BASE_URL } from '../api/config';
 import { FeedBackContext } from '../feedback/context';
 import { usePrint } from '../invoice-templates/usePrint';
 import { clearAllStorage, clearDataOnly } from '../local-storage';
-import { Alert } from 'react-native';
+import { AuthContext } from '../context/authContext';
+import { SupervisorPasswordModal } from '../components/SupervisorPasswordModal';
 // @ts-ignore - Icon library type issue
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@svgr-iconkit/material-community';
+import * as Updates from 'expo-updates';
 
 export default function SettingsScreen() {
     const { communicate } = React.useContext(FeedBackContext);
     const { synchronise, loading } = useSynchronise();
     const { apiUrl, device } = React.useContext(LocalDataContext);
     const { print } = usePrint();
+    const { mode, supervisors } = React.useContext(AuthContext);
+
+    // États pour les modals de confirmation
+    const [clearDataModalVisible, setClearDataModalVisible] = React.useState(false);
+    const [resetAppModalVisible, setResetAppModalVisible] = React.useState(false);
 
     const handleClearData = () => {
-        Alert.alert(
-            '🗑️ Réinitialiser les données',
-            'Voulez-vous supprimer toutes les données synchronisées ? (Le code device sera conservé)',
-            [
-                {
-                    text: 'Annuler',
-                    style: 'cancel'
-                },
-                {
-                    text: 'Supprimer les données',
-                    onPress: async () => {
-                        try {
-                            await clearDataOnly();
-                            communicate({ content: '✅ Données supprimées ! Veuillez resynchroniser.', duration: 5000 });
-                        } catch (error: any) {
-                            communicate({ content: '❌ Erreur: ' + error.message, duration: 5000 });
-                        }
-                    },
-                    style: 'destructive'
-                }
-            ]
-        );
+        // Vérifier si on est en mode superviseur
+        if (mode !== 'supervisor') {
+            communicate({ 
+                content: '🔒 Action réservée aux superviseurs uniquement', 
+                duration: 3000 
+            });
+            return;
+        }
+
+        // Vérifier qu'il y a des superviseurs enregistrés
+        if (supervisors.length === 0) {
+            communicate({ 
+                content: '⚠️ Aucun superviseur enregistré. Veuillez synchroniser d\'abord.', 
+                duration: 4000 
+            });
+            return;
+        }
+
+        // Ouvrir le modal de confirmation avec mot de passe
+        setClearDataModalVisible(true);
     };
 
     const handleResetApp = () => {
-        Alert.alert(
-            '⚠️ RESET COMPLET',
-            'Voulez-vous TOUT supprimer (y compris le code device) ? L\'app sera comme neuve.',
-            [
-                {
-                    text: 'Annuler',
-                    style: 'cancel'
-                },
-                {
-                    text: '🔥 TOUT SUPPRIMER',
-                    onPress: async () => {
-                        try {
-                            await clearAllStorage();
-                            communicate({ content: '✅ App réinitialisée ! Redémarrez l\'application.', duration: 5000 });
-                            // Optionnel: forcer le reload de l'app
-                            // Updates.reloadAsync();
-                        } catch (error: any) {
-                            communicate({ content: '❌ Erreur: ' + error.message, duration: 5000 });
-                        }
-                    },
-                    style: 'destructive'
-                }
-            ]
-        );
+        // Vérifier si on est en mode superviseur
+        if (mode !== 'supervisor') {
+            communicate({ 
+                content: '🔒 Action réservée aux superviseurs uniquement', 
+                duration: 3000 
+            });
+            return;
+        }
+
+        // Vérifier qu'il y a des superviseurs enregistrés
+        if (supervisors.length === 0) {
+            communicate({ 
+                content: '⚠️ Aucun superviseur enregistré. Veuillez synchroniser d\'abord.', 
+                duration: 4000 
+            });
+            return;
+        }
+
+        // Ouvrir le modal de confirmation avec mot de passe
+        setResetAppModalVisible(true);
+    };
+
+    // Fonction exécutée après validation du mot de passe pour clearData
+    const executeClearData = async () => {
+        try {
+            await clearDataOnly();
+            communicate({ 
+                content: '✅ Données supprimées ! Redémarrage...', 
+                duration: 3000 
+            });
+            
+            // Redémarrer l'app après 2 secondes
+            setTimeout(async () => {
+                await Updates.reloadAsync();
+            }, 2000);
+        } catch (error: any) {
+            communicate({ 
+                content: '❌ Erreur: ' + error.message, 
+                duration: 5000 
+            });
+        }
+    };
+
+    // Fonction exécutée après validation du mot de passe pour resetApp
+    const executeResetApp = async () => {
+        try {
+            await clearAllStorage();
+            communicate({ 
+                content: '✅ App réinitialisée ! Redémarrage...', 
+                duration: 3000 
+            });
+            
+            // Redémarrer l'app après 2 secondes
+            setTimeout(async () => {
+                await Updates.reloadAsync();
+            }, 2000);
+        } catch (error: any) {
+            communicate({ 
+                content: '❌ Erreur: ' + error.message, 
+                duration: 5000 
+            });
+        }
     };
 
     return (
@@ -123,21 +166,45 @@ export default function SettingsScreen() {
                         />
                         <IconButton
                             icon={(props) => <MaterialCommunityIcons name='delete-sweep' {...props} />}
-                            iconColor={Colors.orange600}
+                            iconColor={mode === 'supervisor' ? Colors.orange600 : Colors.grey400}
                             size={30}
                             onPress={handleClearData}
+                            disabled={mode !== 'supervisor'}
                         />
                         <IconButton
                             icon={(props) => <MaterialCommunityIcons name='delete-forever' {...props} />}
-                            iconColor={Colors.red600}
+                            iconColor={mode === 'supervisor' ? Colors.red600 : Colors.grey400}
                             size={30}
                             onPress={handleResetApp}
+                            disabled={mode !== 'supervisor'}
                         />
                     </Card.Content>
                     <Card.Content>
                         <ProgressBar visible={loading} indeterminate={true} color={Colors.blue600} style={{height: 5, borderRadius: 2, marginTop: 2}} />
                     </Card.Content>
                 </Card>
+
+                {/* Modal de confirmation pour suppression des données */}
+                <SupervisorPasswordModal
+                    visible={clearDataModalVisible}
+                    onDismiss={() => setClearDataModalVisible(false)}
+                    onConfirm={executeClearData}
+                    title="🗑️ Réinitialiser les données"
+                    message="Confirmez avec votre mot de passe superviseur pour supprimer toutes les données synchronisées. Le code device sera conservé."
+                    confirmButtonText="Supprimer les données"
+                    supervisors={supervisors}
+                />
+
+                {/* Modal de confirmation pour reset complet */}
+                <SupervisorPasswordModal
+                    visible={resetAppModalVisible}
+                    onDismiss={() => setResetAppModalVisible(false)}
+                    onConfirm={executeResetApp}
+                    title="⚠️ RESET COMPLET"
+                    message="⚠️ ATTENTION : Cette action supprimera TOUT (y compris le code device). L'app sera comme neuve. Confirmez avec votre mot de passe superviseur."
+                    confirmButtonText="🔥 TOUT SUPPRIMER"
+                    supervisors={supervisors}
+                />
             </Provider>
         </View>
     );

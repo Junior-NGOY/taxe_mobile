@@ -5,9 +5,9 @@ import { View } from './Themed';
 /**
  * Génération d'une ligne de la grille
  */
-function lines(column: number, items: Array<JSX.Element> ) {
+function lines(column: number, items: Array<React.ReactElement> ) {
     let length = items.length;
-    let component : JSX.Element[] = [];
+    let component : React.ReactElement[] = [];
         for(let position = 0; position < length ; position = position + column) {
             component.push(
                 <View key={'line-'+ position} style={{ flexDirection: 'row', marginHorizontal: 1 }}>
@@ -39,7 +39,7 @@ function cellules(position: number, column : number, items: Array<any>) {
     return children;
 }
 
-const Grid = ({column, children, ...props} : { column: number, children: JSX.Element | JSX.Element[]} ) => {
+const Grid = ({column, children, ...props} : { column: number, children: React.ReactElement | React.ReactElement[]} ) => {
     return (
         <View {...props}>
             {

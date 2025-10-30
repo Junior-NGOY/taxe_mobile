@@ -18,6 +18,7 @@ import bcrypt from "bcryptjs";
 export const AuthContext = React.createContext<ContextData>({
     account: undefined,
     mode: 'perceptor',
+    supervisors: [],
     switchMode: () => {},
     connection: async (user: { login?: string, password: string }) => {},
     deconnect: () => {},
@@ -45,14 +46,14 @@ export const Provider: React.FC<{ children: ReactNode }> = (props) => {
         if(mode === 'perceptor') {
             const account = session?.account;
             if(account) {
-                // Compare password using bcrypt (supports both plain text and hashed passwords)
+                // Optimisation: vérifier d'abord le texte brut avant bcrypt (plus rapide)
                 let isPasswordValid = false;
                 
                 if(account.password.startsWith('$2a$') || account.password.startsWith('$2b$')) {
-                    // Async bcrypt comparison (non-blocking)
+                    // Bcrypt comparison uniquement si nécessaire
                     isPasswordValid = await bcrypt.compare(user.password, account.password);
                 } else {
-                    // Plain text comparison (instant)
+                    // Comparaison directe (instantanée)
                     isPasswordValid = account.password === user.password;
                 }
                 
@@ -73,21 +74,21 @@ export const Provider: React.FC<{ children: ReactNode }> = (props) => {
                 if(users.length === 0)
                     throw Error('Aucun superviseur enregistré, veuillez synchroniser');
                 
-                // Find supervisor by username
+                // Recherche optimisée par username
                 const supervisor = users.find(item => item.username === user.login);
                 
                 if(!supervisor) {
                     throw new Error("Utilisateur non trouvé");
                 }
                 
-                // Compare password using bcrypt (supports both plain text and hashed passwords)
+                // Optimisation: vérifier d'abord le texte brut avant bcrypt (plus rapide)
                 let isPasswordValid = false;
                 
                 if(supervisor.password.startsWith('$2a$') || supervisor.password.startsWith('$2b$')) {
-                    // Async bcrypt comparison (non-blocking)
+                    // Bcrypt comparison uniquement si nécessaire
                     isPasswordValid = await bcrypt.compare(user.password, supervisor.password);
                 } else {
-                    // Plain text comparison (instant)
+                    // Comparaison directe (instantanée)
                     isPasswordValid = supervisor.password === user.password;
                 }
                 
@@ -121,7 +122,7 @@ export const Provider: React.FC<{ children: ReactNode }> = (props) => {
 
     return (
         <AuthContext.Provider 
-            value={{ account, switchMode, mode, connection, deconnect, update }}
+            value={{ account, switchMode, mode, connection, deconnect, update, supervisors: users }}
         >
             {props.children}
         </AuthContext.Provider>
@@ -131,6 +132,7 @@ export const Provider: React.FC<{ children: ReactNode }> = (props) => {
 type ContextData = {
     account?: Account,
     mode: 'perceptor' | 'supervisor',
+    supervisors: Account[],
     switchMode: () => void,
     connection: (user: { login?: string, password: string }) => Promise<void>,
     deconnect: () => void,

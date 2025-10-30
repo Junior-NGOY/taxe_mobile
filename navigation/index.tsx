@@ -3,8 +3,7 @@
  * https://reactnavigation.org/docs/getting-started
  *
  */
-// import { MaterialIcons } from '@expo/vector-icons';
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from '@svgr-iconkit/material-design';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as React from 'react';

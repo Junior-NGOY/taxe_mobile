@@ -16,7 +16,7 @@ import { MySnackbar } from './feedback/Snackbar';
 import { Provider, DefaultTheme } from 'react-native-paper';
 import { OperationStatus, useDevice } from './hooks/useDevice';
 import Colors from './constants/Colors';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@svgr-iconkit/material-community';
 
 
 export default function App() {

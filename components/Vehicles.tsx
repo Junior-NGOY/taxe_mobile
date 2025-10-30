@@ -2,7 +2,11 @@ import * as React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from './Themed';
 // Import icons from Owner repository
-import { MaterialCommunityIcons, FontAwesome, FontAwesome5, MaterialIcons, Ionicons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@svgr-iconkit/material-community';
+import FontAwesome from '@svgr-iconkit/fontawesome';
+import FontAwesome5 from '@svgr-iconkit/fontawesome5';
+import MaterialIcons from '@svgr-iconkit/material-design';
+import Ionicons from '@svgr-iconkit/ionicons';
 
 import { Card } from 'react-native-paper';
 import Grid from './Grid';
@@ -13,7 +17,7 @@ import Colors from '../constants/Colors';
 export interface VehicleType {
     name: string,
     price: number,
-    icon: JSX.Element
+    icon: React.ReactElement
 };
 
 const Vehicles = ({handlePress} : {handlePress : (tarification: {id: string, price: number, name: string}) => void}) => {

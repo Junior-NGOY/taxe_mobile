@@ -24,9 +24,12 @@ export function useSynchronise() {
         setLoading(true);
 
         try {
-            console.log('🔄 Synchronisation démarrée');
-            console.log('🔍 API URL:', apiUrl);
-            console.log('🔍 Device Code:', device?.code);
+            // Logs conditionnels uniquement en développement (optimisation performance)
+            if (__DEV__) {
+                console.log('🔄 Synchronisation démarrée');
+                console.log('🔍 API URL:', apiUrl);
+                console.log('🔍 Device Code:', device?.code);
+            }
             
             const res = await fetch(apiUrl + '/synchronisation', {
                 headers: {
@@ -34,39 +37,39 @@ export function useSynchronise() {
                 }
             });
 
-            console.log('📡 Réponse status:', res.status);
-            console.log('📡 Réponse ok:', res.ok);
-
             if(!res.ok)
                 throw new Error('Impossible d\'exécuter la requête');
 
             const data = await res.json();
-            console.log('📦 Données reçues:', JSON.stringify(data, null, 2));
-            console.log('👥 Superviseurs:', data?.supervisors?.length || 0);
-            console.log('👷 Percepteurs:', data?.perceptors?.length || 0);
-            console.log('💰 Tarifications:', data?.tarifications?.length || 0);
-            console.log('🅿️ Parkings:', data?.parkings?.length || 0);
             
-            // await clear();
+            // Logs légers uniquement en développement
+            if (__DEV__) {
+                console.log('📦 Données:', {
+                    supervisors: data?.supervisors?.length || 0,
+                    perceptors: data?.perceptors?.length || 0,
+                    tarifications: data?.tarifications?.length || 0,
+                    parkings: data?.parkings?.length || 0,
+                    markets: data?.markets?.length || 0
+                });
+            }
 
             updateLocalData({ device: { ...device, site: data?.site }});
-            // await setItemAsync(Table.account, [...data?.perceptors, ...data?.supervisors]);
             updateAuthData(data?.supervisors && Array.isArray(data?.supervisors) ? data?.supervisors : []);
-            console.log('✅ AuthData mis à jour avec', data?.supervisors?.length || 0, 'superviseurs');
             
             updateWorkSessionData({
                 tarifications: data?.tarifications && Array.isArray(data?.tarifications) ? data?.tarifications : [],
                 parkings: data?.parkings && Array.isArray(data?.parkings) ? data?.parkings : [],
+                markets: data?.markets && Array.isArray(data?.markets) ? data?.markets : [],
                 perceptors: data?.perceptors && Array.isArray(data?.perceptors) ? data?.perceptors : [],
             });
-            console.log('✅ WorkSessionData mis à jour');
 
             setStatus(OperationStatus.finish);
             setLoading(false);
-            console.log('✅ Synchronisation terminée avec succès');
+            
+            if (__DEV__) console.log('✅ Synchronisation terminée');
         }
         catch (error) {
-            console.error('❌ Erreur synchronisation:', error);
+            if (__DEV__) console.error('❌ Erreur synchronisation:', error);
             setStatus(OperationStatus.error);
             setLoading(false);
             throw error;

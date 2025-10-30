@@ -11,10 +11,11 @@ export const WorkSessionContext = createContext<DataContext>({
     addInvoice: (invoice: any, duplicate?: boolean): void => {},
     reinitialiseCounter: (): void => {},
     parkings: [],
+    markets: [],
     perceptors: [],
     tracedInvoices: [],
     tarifications: [],
-    update: (data: { tarifications?: Tarification[], perceptors?: Perceptor[], parkings?: Parking[] }) => {},
+    update: (data: { tarifications?: Tarification[], perceptors?: Perceptor[], parkings?: Parking[], markets?: Market[] }) => {},
     stop: false
 });
 
@@ -135,9 +136,10 @@ type DataContext = {
     reinitialiseCounter: () => void,
     perceptors?: Perceptor[],
     parkings?: Parking[],
+    markets?: Market[],
     tracedInvoices: IdInvoice[],
     tarifications?: Tarification[],
-    update: (data: { tarifications?: Tarification[], perceptors?: Perceptor[], parkings?: Parking[] }) => void,
+    update: (data: { tarifications?: Tarification[], perceptors?: Perceptor[], parkings?: Parking[], markets?: Market[] }) => void,
     stop?: boolean
 };
 
@@ -177,6 +179,12 @@ export type Perceptor = {
 export type Parking = {
     id: number|string;
     name: string;
+};
+
+export type Market = {
+    id: number|string;
+    name: string;
+    stallCount?: number;
 };
 
 

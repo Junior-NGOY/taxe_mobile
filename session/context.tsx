@@ -96,5 +96,9 @@ export type Session = {
         id: number|string;
         name: string;
     },
+    market?: {
+        id: number|string;
+        name: string;
+    },
     printingLimit?: number
 };

@@ -1,4 +1,3 @@
-import { string } from 'prop-types';
 import * as React from 'react';
 import { StyleSheet, ScrollView } from 'react-native';
 

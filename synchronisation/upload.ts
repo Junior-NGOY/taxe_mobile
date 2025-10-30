@@ -18,62 +18,102 @@ export function useUpload()
     const { invoices } = useContext(WorkSessionContext);
     const { device, apiUrl } = useContext(LocalDataContext);
 
-    const upload = async () => {
-        setCount(0); // Initialisation du compteur
+    const upload = async (retryCount = 0) => {
+        const MAX_RETRIES = 3;
+        
+        setCount(0);
         setLoading(true);
         setStatus(UploadStatus.started);
 
         try {
-            const invoicesToSend = invoices.map((invoice : any) => {
-                return ({
-                    amount: invoice?.amount,
-                    tarification: '/api/tarifications/' + invoice?.tarification?.id,
-                    code: invoice?.number,
-                    matricule: invoice?.matricule,
-                    //createdAt: invoice?.createdAt
-                });
-            });
+            // Préparation des données
+            const invoicesToSend = invoices.map((invoice : any) => ({
+                amount: invoice?.amount,
+                tarification: '/api/tarifications/' + invoice?.tarification?.id,
+                code: invoice?.number,
+                matricule: invoice?.matricule,
+            }));
 
-            setCount(1); // Incrémentation après préparation des factures pour l'envoi à l'API
+            setCount(1);
             
-            // nouveau lien : /upload/session/{perceptor}/{parking}
-            // const res = await fetch(apiUrl + '/upload/invoices/' + session?.id, {
-            const res = await fetch(apiUrl + '/upload/session/'+ session?.account?.id +'/' + session?.parking?.id, {
-                'method': 'POST',
-                'mode': 'cors',
+            // Déterminer l'endpoint selon le type de session (parking ou market)
+            let uploadUrl;
+            if (session?.parking) {
+                // Session de parking
+                uploadUrl = apiUrl + '/upload/session/'+ session?.account?.id +'/' + session?.parking?.id;
+            } else if (session?.market) {
+                // Session de market
+                uploadUrl = apiUrl + '/upload/session/'+ session?.account?.id +'/market/' + session?.market?.id;
+            } else {
+                throw new Error('Session invalide: ni parking ni market défini');
+            }
+            
+            // Upload avec timeout de 30s (connexions lentes)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout pour connexions lentes
+            
+            if (__DEV__) console.log(`📤 Upload tentative ${retryCount + 1}/${MAX_RETRIES}:`, uploadUrl);
+            
+            const res = await fetch(uploadUrl, {
+                method: 'POST',
+                mode: 'cors',
+                signal: controller.signal,
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
                     'Device-Code': device?.code,
-                    // 'User-Account': supervisor?.id
                 },
                 body: JSON.stringify({
                     invoices : invoicesToSend,
-                    missing: session?.missing ? session.missing : 0,
-                    invoiceMissing: session?.invoiceMissing ? session?.invoiceMissing : 0
+                    missing: session?.missing || 0,
+                    invoiceMissing: session?.invoiceMissing || 0
                 })
             });
 
-            setCount(2); // Incrémentation après reception des données
+            clearTimeout(timeoutId);
+            setCount(2);
             
-            if(!res.ok)
-                throw new Error('Impossible d\'exécuter la requête');
-            
-            /* await deleteAll(Table.invoice);
-            await deleteAll(Table.allInvoices);
-            await deleteAll(Table.sessionParking); */
+            if(!res.ok) {
+                const errorText = await res.text().catch(() => 'Erreur serveur');
+                if (__DEV__) console.log('❌ Réponse serveur:', res.status, errorText);
+                throw new Error(`Erreur serveur (${res.status}): ${errorText}`);
+            }
 
+            if (__DEV__) console.log('✅ Upload réussi');
             setStatus(UploadStatus.finish);
-            setCount(3); // Incrémentation après finalisation de l'upload
+            setCount(3);
             setLoading(false);
 
             return true;
             
-        } catch(e) {
-            console.log('Echec de l\'envoi des données' + e);
+        } catch(e: any) {
+            if (__DEV__) console.log('❌ Echec upload:', e.name, e.message);
+            
+            // Retry automatique sur timeout ou erreur réseau
+            if (retryCount < MAX_RETRIES - 1) {
+                const isNetworkError = e.name === 'AbortError' || e.name === 'TypeError' || e.message.includes('Network');
+                
+                if (isNetworkError) {
+                    if (__DEV__) console.log(`🔄 Retry ${retryCount + 1}/${MAX_RETRIES - 1}...`);
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Attendre 2s avant retry
+                    return upload(retryCount + 1); // Retry récursif
+                }
+            }
+            
             setStatus(UploadStatus.error);
             setLoading(false);
-            throw new Error('Impossible d\'envoyer les données sur le serveur');  
+            
+            // Message d'erreur détaillé
+            let errorMessage = 'Impossible d\'envoyer les données sur le serveur';
+            if (e.name === 'AbortError') {
+                errorMessage = 'Timeout: connexion trop lente. Vérifiez votre réseau';
+            } else if (e.name === 'TypeError') {
+                errorMessage = 'Erreur réseau: vérifiez votre connexion internet';
+            } else if (e.message) {
+                errorMessage = e.message;
+            }
+            
+            throw new Error(errorMessage);  
         }
     }
 

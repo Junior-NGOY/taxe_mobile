@@ -36,6 +36,7 @@ export interface Device {
     site?: {
         id: string,
         name: string,
+        type?: string, // Type de site: TAXE_PARKING ou TAXE_MARKET
         template?: string // Template HTML directement dans le site (comme Symfony)
     }
 }

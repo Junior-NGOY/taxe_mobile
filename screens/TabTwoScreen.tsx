@@ -20,10 +20,11 @@ import ThemeColors from '../constants/Colors';
 export default function TabTwoScreen({ navigation } : { navigation: { navigate: Function}}) {
     const [perceptor, setPerceptor] = React.useState('');
     const [parking, setParking] = React.useState<string>('');
+    const [market, setMarket] = React.useState<string>('');
     const { upload, count, MAX_STEP } = useUpload();
     const [loading, setLoading] = React.useState(false);
     const { device } = React.useContext(LocalDataContext);
-    const { invoices, parkings, perceptors, reinitialiseCounter } = React.useContext(WorkSessionContext);
+    const { invoices, parkings, markets, perceptors, reinitialiseCounter } = React.useContext(WorkSessionContext);
     const { session, addMissing, close } = React.useContext(SessionContext);
     const { communicate } = React.useContext(FeedBackContext);
     const { start, remove, loading: startLoading } = useStart();
@@ -100,10 +101,20 @@ export default function TabTwoScreen({ navigation } : { navigation: { navigate: 
                                 dropdownStyles={{ borderColor: color.tabIconDefault }}
                                 dropdownTextStyles={{ color: color.text }}
                                 dropdownItemStyles={{ borderColor: color.tabIconDefault }}
-                                setSelected={(val: string) => setParking(val)} 
-                                data={(parkings ? parkings : []).map(parking => ({ value: parking.name, key: parking.id }))} 
+                                setSelected={(val: string) => {
+                                    if (device?.site?.type === 'TAXE_MARKET') {
+                                        setMarket(val);
+                                    } else {
+                                        setParking(val);
+                                    }
+                                }} 
+                                data={
+                                    device?.site?.type === 'TAXE_MARKET' 
+                                        ? (markets ? markets : []).map(market => ({ value: market.name, key: market.id }))
+                                        : (parkings ? parkings : []).map(parking => ({ value: parking.name, key: parking.id }))
+                                } 
                                 save="key"
-                                placeholder='Sectionner un lieu'
+                                placeholder={device?.site?.type === 'TAXE_MARKET' ? 'Sélectionner un marché' : 'Sélectionner un parking'}
                                 searchPlaceholder='Rechercher'
                             />
                         </View>
@@ -127,19 +138,35 @@ export default function TabTwoScreen({ navigation } : { navigation: { navigate: 
                         </View>
                         
                         <Button onPress={() => Intent.startActivityAsync(Intent.ActivityAction.DATE_SETTINGS)}>Régler la date</Button>
-                        <Button style={styles.startButton} disabled={startLoading} onPress={() => start({ perceptor, parking, printingLimit })}>Commencer</Button>
+                        <Button 
+                            style={styles.startButton} 
+                            disabled={startLoading} 
+                            onPress={() => start({ 
+                                perceptor, 
+                                parking: device?.site?.type === 'TAXE_MARKET' ? undefined : parking,
+                                market: device?.site?.type === 'TAXE_MARKET' ? market : undefined,
+                                printingLimit 
+                            })}
+                        >
+                            Commencer
+                        </Button>
                     </Provider>
                 </ScrollView>
             )}
             {session && (
                 <Provider>
-                    <ScrollView>
-                        <Card style={{flex: 1}}>
+                    <ScrollView 
+                        contentContainerStyle={{ paddingBottom: 150, flexGrow: 1 }}
+                        showsVerticalScrollIndicator={true}
+                    >
+                        <Card>
                             <Card.Content>
                                 <Title style={styles.title}>Details de la session</Title>
                                 <Text style={styles.detail}>Session No. {session?.id}</Text>
                                 <Text style={styles.detail}>Percepteur: {session?.account?.person?.name}</Text>
-                                <Text style={styles.detail}>Place: {session?.parking?.name}</Text>
+                                <Text style={styles.detail}>
+                                    {session?.parking ? 'Parking' : 'Marché'}: {session?.parking?.name || session?.market?.name}
+                                </Text>
                                 <Text style={styles.detail}>Site: {device?.site?.name}</Text>
                                 <Text style={styles.detail}>Montant: {(() => amount())()} Fc</Text>
                                 <Text style={styles.detail}>Manquant: {session?.missing ? session.missing : 0} Fc</Text>
@@ -161,8 +188,14 @@ export default function TabTwoScreen({ navigation } : { navigation: { navigate: 
                                     {<ProgressBar visible={startLoading } indeterminate style={{ height: 5, borderRadius: 2, marginTop: 15, marginHorizontal: 10 }} color={Colors.blue600}/>}
                                 </View>
                                 <Button onPress={showModal}>Ajouter manquant</Button>
+                                <Button 
+                                    disabled={loading} 
+                                    onPress={() => handleUpload()}
+                                    style={{ marginBottom: 10 }}
+                                >
+                                    Cloturer la session
+                                </Button>
                                 <Button disabled={Boolean(invoices.length) || startLoading} onPress={() => remove()}>Redemarer la session</Button>
-                                <Button disabled={loading} onPress={() => handleUpload()}>Cloturer la session</Button>
                             </Card.Content>
                         </Card>
                     </ScrollView>

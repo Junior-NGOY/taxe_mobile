@@ -15,11 +15,15 @@ export const useRegisterDevice = () => {
         try {
             let res: any = null; 
             try {
+                // Convertir le code en majuscules pour qu'il corresponde toujours au format base de données
+                const normalizedCode = code.trim().toUpperCase();
+                
                 // Utiliser la bonne route: /api/devices/serial/:deviceId
-                const url = apiUrl + '/devices/serial/' + code;
+                const url = apiUrl + '/devices/serial/' + normalizedCode;
                 console.log('🔍 URL de registration:', url);
                 console.log('🔍 API URL:', apiUrl);
-                console.log('🔍 Code:', code);
+                console.log('🔍 Code original:', code);
+                console.log('🔍 Code normalisé:', normalizedCode);
                 res = await fetch(url);
                 console.log('📡 Réponse status:', res.status);
                 console.log('📡 Réponse ok:', res.ok);

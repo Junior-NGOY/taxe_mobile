@@ -11,7 +11,7 @@ import { SessionContext } from "../session/context";
 import { FeedBackContext } from "../feedback/context";
 import { usePrint } from "../invoice-templates/usePrint";
 // @ts-ignore - Icon library type issue
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@svgr-iconkit/material-community';
 
 export default function LoginScreen({ navigation }: { navigation: { navigate: Function}}) {
     const [login, setLogin] = useState<string>('');

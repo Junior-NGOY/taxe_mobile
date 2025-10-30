@@ -1,22 +1,24 @@
 import { ReactNode, createContext, useContext, useEffect, useState } from "react";
 import { useLocalStorage } from "../local-storage/local-storage";
 import { Table } from "../local-storage";
-import { Parking, Perceptor, Tarification } from "../context/workSession";
+import { Market, Parking, Perceptor, Tarification } from "../context/workSession";
 import { usePersist } from "../local-storage/local-storage-2";
 
 
 export const useWorkSession = () => {
     const [parkings, setParkings] = useState<Parking[]>();
+    const [markets, setMarkets] = useState<Market[]>();
     const [perceptors, setPerceptors] = useState<Perceptor[]>();
     const [tarifications, setTarifications] = useState<Tarification[]>();
     const {localStorage} = useLocalStorage();
 
     const { persist } = usePersist();
 
-    const update = (data: { tarifications?: Tarification[], perceptors?: Perceptor[], parkings?: Parking[] }) => {
+    const update = (data: { tarifications?: Tarification[], perceptors?: Perceptor[], parkings?: Parking[], markets?: Market[] }) => {
         if(data.tarifications) setTarifications(data.tarifications);
         if(data.perceptors) setPerceptors(data.perceptors);
         if(data.parkings) setParkings(data.parkings);
+        if(data.markets) setMarkets(data.markets);
     };
 
     useEffect(() => {
@@ -27,6 +29,15 @@ export const useWorkSession = () => {
                 });
         }
     }, [parkings]);
+
+    useEffect(() => {
+        if(markets) {
+            persist<Market[]>({ value: markets ? markets : [], table: Table.market })
+                .catch((error) => {
+                    throw new Error('Impossible de persister les marchés')
+                });
+        }
+    }, [markets]);
 
     useEffect(() => {
         if(perceptors) {
@@ -54,6 +65,12 @@ export const useWorkSession = () => {
             })
             .catch(e => console.log('App component => ', e));
 
+        localStorage(Table.market, true)
+            .then((values: { id: string, name: string, stallCount?: number }[]) => {
+                setMarkets(values);
+            })
+            .catch(e => console.log('App component => ', e));
+
         localStorage(Table.perceptors, true)
             .then((values: Perceptor[]) => {
                 setPerceptors(values);
@@ -65,5 +82,5 @@ export const useWorkSession = () => {
             .catch((e) => console.log('Impossible de récuperer les tarifications'));
     }, []);
 
-    return { tarifications, perceptors, parkings, update };
+    return { tarifications, perceptors, parkings, markets, update };
 };

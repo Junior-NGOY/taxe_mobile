@@ -17,7 +17,8 @@
       "fallbackToCacheTimeout": 0
     },
     "assetBundlePatterns": [
-      "**/*"
+      "assets/fonts/**",
+      "assets/images/**"
     ],
     "ios": {
       "supportsTablet": true,
@@ -31,16 +32,16 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.sid.taxeparking",
-      "versionCode": 1,
+      "package": "com.jchmasirika.taxeparking2",
+      "versionCode": 10,
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
         "CAMERA",
         "BLUETOOTH",
-        "BLUETOOTH_ADMIN",
-        "BLUETOOTH_CONNECT"
-      ]
+        "BLUETOOTH_ADMIN"
+      ],
+      "minSdkVersion": 21,
+      "targetSdkVersion": 31,
+      "compileSdkVersion": 34
     },
     "web": {
       "favicon": "./assets/images/favicon.ico",
