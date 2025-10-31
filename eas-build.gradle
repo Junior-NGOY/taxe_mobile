@@ -1,0 +1,17 @@
+// Configuration EAS Build pour support multi-architecture (32-bit + 64-bit)
+// Nécessaire pour les vieux appareils comme VIVO Android 6.0
+
+android {
+    defaultConfig {
+        // Force le support des architectures 32-bit et 64-bit
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+        }
+    }
+    
+    splits {
+        abi {
+            enable false
+        }
+    }
+}

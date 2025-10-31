@@ -1,28 +1,32 @@
-import { ReactNode, createContext, useEffect, useState } from "react";
+import { ReactNode, createContext, useEffect, useState, useContext } from "react";
 import { useLocalStorage, usePersist } from "../local-storage/local-storage";
 import { usePersist as usePersistV2 } from "../local-storage/local-storage-2";
 import { Table } from "../local-storage";
 import { format, toDate } from "date-fns";
 import { useWorkSession } from "../hooks/useWorkSession";
 import { differenceInDays } from "date-fns/differenceInDays";
+import { SessionContext } from "../session/context";
 
 export const WorkSessionContext = createContext<DataContext>({
     invoices: [],
     addInvoice: (invoice: any, duplicate?: boolean): void => {},
     reinitialiseCounter: (): void => {},
+    resetInvoices: (): void => {},
     parkings: [],
     markets: [],
     perceptors: [],
     tracedInvoices: [],
     tarifications: [],
     update: (data: { tarifications?: Tarification[], perceptors?: Perceptor[], parkings?: Parking[], markets?: Market[] }) => {},
-    stop: false
+    stop: false,
+    unlockSession: (): void => {}
 });
 
 export const Provider: React.FC<{ children: ReactNode }> = (props) => {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [stop, setStop] = useState(false);
     const data = useWorkSession();
+    const { session } = useContext(SessionContext); // Accéder à la session pour maxDays
 
     const {localStorage} = useLocalStorage();
     const { persist }  = usePersist<Invoice>(Table.invoice, true);
@@ -87,6 +91,22 @@ export const Provider: React.FC<{ children: ReactNode }> = (props) => {
         }
     };
 
+    const resetInvoices = () => {
+        try {
+            setInvoices([]);
+            setIds([]);
+            persistV2<Invoice[]>({ value: [], table: Table.invoice });
+            persistV2<IdInvoice[]>({ value: [], table: Table.allInvoices });
+            setStop(false); // Déverrouiller après reset
+        } catch (error) {
+            throw new Error("Erreur lors de la réinitialisation des factures");
+        }
+    };
+
+    const unlockSession = () => {
+        setStop(false);
+    };
+
     useEffect(() => {
         // Recupération des données dans le local storage
         localStorage(Table.invoice, true)
@@ -103,15 +123,19 @@ export const Provider: React.FC<{ children: ReactNode }> = (props) => {
     }, []);
 
     useEffect(() => {
-        if(invoices.length > 0) {
+        if(invoices.length > 0 && session) {
             let first = invoices[0];
     
             first.createdAt = typeof first.createdAt === 'string' ? new Date(first.createdAt) : first.createdAt;
-            if(differenceInDays(new Date(), first.createdAt) > 2) {
+            
+            // Utiliser maxDays de la session (par défaut 2 si non défini)
+            const maxDaysAllowed = session.maxDays ?? 2;
+            
+            if(differenceInDays(new Date(), first.createdAt) > maxDaysAllowed) {
                 setStop(true);
             }
         }
-    }, [invoices]);
+    }, [invoices, session]);
 
     return (
         <WorkSessionContext.Provider 
@@ -119,6 +143,8 @@ export const Provider: React.FC<{ children: ReactNode }> = (props) => {
                 invoices,
                 addInvoice,
                 reinitialiseCounter,
+                resetInvoices,
+                unlockSession,
                 tracedInvoices: Array.from(ids.values()),
                 stop,
                 ...data
@@ -134,6 +160,8 @@ type DataContext = {
     invoices: Invoice[],
     addInvoice: (invoice: any, duplicate?: boolean) => void,
     reinitialiseCounter: () => void,
+    resetInvoices: () => void,
+    unlockSession: () => void,
     perceptors?: Perceptor[],
     parkings?: Parking[],
     markets?: Market[],

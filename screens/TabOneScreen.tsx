@@ -44,7 +44,17 @@ export default function TabOneScreen({ navigation }: RootTabScreenProps<'TabOne'
 
     const { print, loading: printLoading } = usePrint();
 
-    const showModal = () => setVisible(true);
+    const showModal = () => {
+        if (stopToPrint) {
+            communicate({ content: 'Session bloquée. Veuillez prolonger ou réinitialiser la session.', duration: 5000 });
+            return;
+        }
+        if (!session) {
+            communicate({ content: 'Veuillez démarrer une session avant de créer une facture.', duration: 3000 });
+            return;
+        }
+        setVisible(true);
+    };
     const hidePrintingModal = () => {
         setVisible(false);
         setPrintModal(false);

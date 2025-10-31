@@ -11,6 +11,8 @@ import { SessionContext } from '../session/context';
 import { useStart } from '../session/start';
 import { FeedBackContext } from '../feedback/context';
 import { useSynchronise } from '../synchronisation';
+import { SessionBlockedModal } from '../components/SessionBlockedModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { SelectList } from 'react-native-dropdown-select-list';
 import * as Intent from 'expo-intent-launcher';
@@ -24,13 +26,14 @@ export default function TabTwoScreen({ navigation } : { navigation: { navigate: 
     const { upload, count, MAX_STEP } = useUpload();
     const [loading, setLoading] = React.useState(false);
     const { device } = React.useContext(LocalDataContext);
-    const { invoices, parkings, markets, perceptors, reinitialiseCounter } = React.useContext(WorkSessionContext);
-    const { session, addMissing, close } = React.useContext(SessionContext);
+    const { invoices, parkings, markets, perceptors, reinitialiseCounter, stop, resetInvoices, unlockSession } = React.useContext(WorkSessionContext);
+    const { session, addMissing, close, extendSession } = React.useContext(SessionContext);
     const { communicate } = React.useContext(FeedBackContext);
     const { start, remove, loading: startLoading } = useStart();
     // const { update } = useUpdateData();
     const { synchronise, loading: syncLoading } = useSynchronise();
     const [printingLimit, setPrintingLimit] = React.useState(1);
+    const [maxDays, setMaxDays] = React.useState(3); // Nombre de jours par défaut
 
     const colorScheme = useColorScheme();
     const color = ThemeColors[colorScheme];
@@ -47,6 +50,14 @@ export default function TabTwoScreen({ navigation } : { navigation: { navigate: 
     const [visible, setVisible] = React.useState(false);
     const [missing, setMissing] = React.useState(session?.missing ? session.missing : 0); // Missing in session
     const [invoiceMissing, setInvoiceMissing] = React.useState(session?.invoiceMissing ? session.invoiceMissing : 0); // Missing in session
+    const [blockedModalVisible, setBlockedModalVisible] = React.useState(false);
+
+    // Afficher le modal de blocage quand stop = true
+    React.useEffect(() => {
+        if (stop && session) {
+            setBlockedModalVisible(true);
+        }
+    }, [stop, session]);
 
     const showModal = () => setVisible(true);
     const hideModal = () => {
@@ -72,7 +83,106 @@ export default function TabTwoScreen({ navigation } : { navigation: { navigate: 
             setLoading(false);
             communicate({ content: error.message });
         }
-    }
+    };
+
+    const handleExtendSession = (days: number) => {
+        extendSession(days);
+        unlockSession();
+        setBlockedModalVisible(false);
+        communicate({ content: `Session prolongée de ${days} jours`, duration: 5000 });
+    };
+
+    const handleResetInvoices = async () => {
+        try {
+            // Créer le contenu du fichier de traçabilité
+            const now = new Date();
+            const timestamp = format(now, 'yyyy-MM-dd_HH-mm-ss');
+            const deviceCode = device?.code || 'UNKNOWN';
+            const sessionId = session?.id || 'N/A';
+            const perceptorName = session?.account?.person?.name || 'N/A';
+            const parkingName = session?.parking?.name || session?.market?.name || 'N/A';
+            const invoiceCount = invoices.length;
+            
+            // Calculer le montant total (avec conversion en nombre)
+            const totalAmount = invoices.reduce((sum, inv) => {
+                const amount = typeof inv.amount === 'string' ? parseFloat(inv.amount) : inv.amount;
+                return sum + (amount || 0);
+            }, 0);
+            
+            // Construire le contenu du fichier
+            let fileContent = '========================================\n';
+            fileContent += '   TRAÇABILITÉ - SUPPRESSION FACTURES\n';
+            fileContent += '========================================\n\n';
+            fileContent += `Date de suppression: ${format(now, 'dd/MM/yyyy HH:mm:ss')}\n`;
+            fileContent += `Appareil: ${deviceCode}\n`;
+            fileContent += `Session ID: ${sessionId}\n`;
+            fileContent += `Percepteur: ${perceptorName}\n`;
+            fileContent += `Parking/Marché: ${parkingName}\n`;
+            fileContent += `Nombre de factures supprimées: ${invoiceCount}\n`;
+            fileContent += `Montant total: ${totalAmount} Fc\n\n`;
+            fileContent += '========================================\n';
+            fileContent += '   DÉTAILS DES FACTURES SUPPRIMÉES\n';
+            fileContent += '========================================\n\n';
+            
+            // Ajouter les détails de chaque facture
+            invoices.forEach((invoice, index) => {
+                fileContent += `Facture ${index + 1}:\n`;
+                fileContent += `  - Numéro: ${invoice.number || 'N/A'}\n`;
+                fileContent += `  - Matricule: ${invoice.matricule || 'N/A'}\n`;
+                fileContent += `  - Type véhicule: ${invoice.tarification?.name || 'N/A'}\n`;
+                fileContent += `  - Montant: ${invoice.amount || 0} Fc\n`;
+                fileContent += `  - Date création: ${invoice.createdAt ? format(new Date(invoice.createdAt), 'dd/MM/yyyy HH:mm:ss') : 'N/A'}\n`;
+                fileContent += '\n';
+            });
+            
+            fileContent += '========================================\n';
+            fileContent += `Fichier généré par: ${deviceCode}\n`;
+            fileContent += '========================================\n';
+            
+            // Définir la clé de stockage unique
+            const fileName = `RESET_${deviceCode}_${timestamp}`;
+            
+            // Sauvegarder le fichier dans AsyncStorage
+            await AsyncStorage.setItem(fileName, fileContent);
+            
+            // Récupérer la liste des fichiers de traçabilité existants
+            const existingFiles = await AsyncStorage.getItem('RESET_TRACE_FILES');
+            const filesList = existingFiles ? JSON.parse(existingFiles) : [];
+            
+            // Ajouter le nouveau fichier à la liste
+            filesList.push({
+                key: fileName,
+                timestamp: now.toISOString(),
+                deviceCode,
+                invoiceCount,
+                totalAmount
+            });
+            
+            // Sauvegarder la liste mise à jour
+            await AsyncStorage.setItem('RESET_TRACE_FILES', JSON.stringify(filesList));
+            
+            // Réinitialiser les factures
+            resetInvoices();
+            setBlockedModalVisible(false);
+            
+            communicate({ 
+                content: `Factures réinitialisées. Fichier de traçabilité créé: ${fileName}.txt`, 
+                duration: 7000 
+            });
+            
+            console.log('Fichier de traçabilité créé dans AsyncStorage:', fileName);
+            console.log('Contenu:', fileContent);
+        } catch (error: any) {
+            console.error('Erreur lors de la création du fichier de traçabilité:', error);
+            // Réinitialiser quand même les factures même si le fichier échoue
+            resetInvoices();
+            setBlockedModalVisible(false);
+            communicate({ 
+                content: 'Factures réinitialisées (erreur fichier de traçabilité)', 
+                duration: 5000 
+            });
+        }
+    };
 
     return (
         <View style={styles.containerStyle}>
@@ -132,6 +242,29 @@ export default function TabTwoScreen({ navigation } : { navigation: { navigate: 
                                 searchPlaceholder='Rechercher'
                             />
                         </View>
+                        <View style={styles.selectStyle}>
+                            <Text style={{ color: color.text, marginBottom: 8, fontSize: 14 }}>Nombre de jours avant blocage (max: 7)</Text>
+                            <TextInput
+                                mode="outlined"
+                                keyboardType="number-pad"
+                                value={maxDays.toString()}
+                                onChangeText={(text) => {
+                                    const days = parseInt(text) || 3;
+                                    if (days > 7) {
+                                        communicate({ content: 'Le nombre de jours ne peut pas dépasser 7', duration: 3000 });
+                                        setMaxDays(7);
+                                    } else if (days < 1) {
+                                        setMaxDays(1);
+                                    } else {
+                                        setMaxDays(days);
+                                    }
+                                }}
+                                placeholder="Ex: 3"
+                                style={{ backgroundColor: color.background }}
+                                outlineColor={color.tabIconDefault}
+                                activeOutlineColor={Colors.blue600}
+                            />
+                        </View>
                         <View>
                             {(startLoading) && (<Text style={{ textAlign: 'center', marginTop: 10 }}>Opération en cours...</Text>)}
                             {<ProgressBar visible={startLoading } indeterminate style={{ height: 5, borderRadius: 2, marginTop: 15, marginHorizontal: 10 }} color={Colors.blue600}/>}
@@ -145,7 +278,8 @@ export default function TabTwoScreen({ navigation } : { navigation: { navigate: 
                                 perceptor, 
                                 parking: device?.site?.type === 'TAXE_MARKET' ? undefined : parking,
                                 market: device?.site?.type === 'TAXE_MARKET' ? market : undefined,
-                                printingLimit 
+                                printingLimit,
+                                maxDays
                             })}
                         >
                             Commencer
@@ -248,6 +382,14 @@ export default function TabTwoScreen({ navigation } : { navigation: { navigate: 
                     </Portal>
                 </Provider>
             )}
+            
+            <SessionBlockedModal
+                visible={blockedModalVisible}
+                onDismiss={() => setBlockedModalVisible(false)}
+                onExtend={handleExtendSession}
+                onReset={handleResetInvoices}
+                currentMaxDays={session?.maxDays ?? 2}
+            />
         </View>
     );
 }

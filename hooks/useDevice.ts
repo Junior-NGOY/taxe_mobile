@@ -5,6 +5,7 @@ import { Device } from "../context/dataContext";
 import { Table } from "../local-storage";
 import { usePersist } from "../local-storage/local-storage-2";
 import { FeedBackContext } from "../feedback/context";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const useDevice = () => {
     const {localStorage} = useLocalStorage();
@@ -24,15 +25,63 @@ export const useDevice = () => {
         (async () => {
             try {
                 setStatus(OperationStatus.started);
+                console.log('📱 [useDevice] Chargement des données locales...');
+                
                 const mode = await localStorage(Table.mode);
                 let device = await localStorage(Table.device);
                 const site = await localStorage(Table.site);
+                
+                // NOUVELLE VALIDATION : Vérifier que le device a les champs requis
+                if (device) {
+                    const isValid = device.id && device.code && device.name;
+                    if (!isValid) {
+                        console.warn('⚠️ [useDevice] Device corrompu détecté:', device);
+                        console.warn('⚠️ [useDevice] Suppression du device invalide...');
+                        device = null; // Forcer le re-registration
+                        await AsyncStorage.removeItem(Table.device);
+                    } else {
+                        console.log('✅ [useDevice] Device valide trouvé:', device.code);
+                        
+                        // PERSISTANCE REDONDANTE : Sauvegarder aussi le serialNumber séparément
+                        try {
+                            await AsyncStorage.setItem('@device_backup', JSON.stringify({
+                                code: device.code,
+                                id: device.id,
+                                timestamp: new Date().toISOString()
+                            }));
+                            console.log('💾 [useDevice] Backup du device créé');
+                        } catch (error) {
+                            console.error('❌ [useDevice] Erreur backup:', error);
+                        }
+                    }
+                } else {
+                    console.log('📭 [useDevice] Aucun device trouvé en local');
+                    
+                    // RÉCUPÉRATION : Essayer le backup
+                    try {
+                        const backupData = await AsyncStorage.getItem('@device_backup');
+                        if (backupData) {
+                            const backup = JSON.parse(backupData);
+                            console.log('🔄 [useDevice] Backup trouvé:', backup.code);
+                            communicate({ 
+                                content: `Device perdu. Code de récupération: ${backup.code}. Veuillez vous reconnecter.`, 
+                                duration: 10000 
+                            });
+                        }
+                    } catch (error) {
+                        console.error('❌ [useDevice] Erreur lecture backup:', error);
+                    }
+                }
+                
                 device = site ? { ...device, site } : device; 
 
                 setData({ device, apiUrl: mode ? mode : BASE_URL });
                 setStatus(OperationStatus.finish);
                 setIsInitialized(true);
+                
+                console.log('✅ [useDevice] Initialisation terminée. Device:', device ? device.code : 'null');
             } catch (error: any) {
+                console.error('❌ [useDevice] Erreur lors du chargement:', error);
                 communicate({ content: error.message, duration: 5000 })
                 setStatus(OperationStatus.error);
                 setIsInitialized(true);
@@ -60,8 +109,27 @@ export const useDevice = () => {
         if(!isInitialized) return;
         
         if(data?.device){
+            console.log('💾 [useDevice] Sauvegarde du device:', data.device.code);
+            
+            // Persistance principale
             persist<Device>({ value: data.device, table: Table.device })
+                .then(() => {
+                    console.log('✅ [useDevice] Device sauvegardé avec succès');
+                    
+                    // PERSISTANCE REDONDANTE : Créer un backup séparé
+                    AsyncStorage.setItem('@device_backup', JSON.stringify({
+                        code: data.device!.code,
+                        id: data.device!.id,
+                        name: data.device!.name,
+                        timestamp: new Date().toISOString()
+                    })).then(() => {
+                        console.log('✅ [useDevice] Backup créé');
+                    }).catch(err => {
+                        console.error('❌ [useDevice] Erreur backup:', err);
+                    });
+                })
                 .catch((error) => {
+                    console.error('❌ [useDevice] Erreur persist device:', error);
                     if (__DEV__) console.error('Erreur persist device:', error);
                 });
         }

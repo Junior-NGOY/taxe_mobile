@@ -11,7 +11,7 @@ export const useStart = () => {
     // const { synchronise } = useContext(SessionContext);
     const { communicate } = useContext(FeedBackContext);
 
-    const start = (data : { parking?: number|string, market?: number|string, perceptor: number|string, printingLimit: number }) => {
+    const start = (data : { parking?: number|string, market?: number|string, perceptor: number|string, printingLimit: number, maxDays: number }) => {
         setLoading(true);
         let perceptor: Perceptor|undefined = perceptors?.filter(item => item.id == data.perceptor).find(item => Boolean(item));
         let parking: Parking|undefined = data.parking ? parkings?.filter(item => item.id == data.parking).find(item => Boolean(item)) : undefined;
@@ -21,16 +21,19 @@ export const useStart = () => {
             communicate({ content: 'Veuillez sélectionner un percepteur', duration: 5000});
         } else if(!parking && !market) {
             communicate({ content: 'Veuillez sélectionner un parking ou un marché', duration: 5000 });
+        } else if(!data.maxDays || data.maxDays < 1) {
+            communicate({ content: 'Veuillez saisir un nombre de jours valide (minimum 1)', duration: 5000 });
         } else if(!session) {
             create({
                 parking,
                 market,
                 account: perceptor,
                 startAt: new Date(),
-                printingLimit: data.printingLimit
+                printingLimit: data.printingLimit,
+                maxDays: data.maxDays
             });
         } else if(session) {
-            create({...session, parking, market, account: perceptor, printingLimit: data.printingLimit });
+            create({...session, parking, market, account: perceptor, printingLimit: data.printingLimit, maxDays: data.maxDays });
         }
 
         setLoading(false);

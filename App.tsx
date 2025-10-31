@@ -16,6 +16,7 @@ import { MySnackbar } from './feedback/Snackbar';
 import { Provider, DefaultTheme } from 'react-native-paper';
 import { OperationStatus, useDevice } from './hooks/useDevice';
 import Colors from './constants/Colors';
+// @ts-ignore - Icon library type issue
 import MaterialCommunityIcons from '@svgr-iconkit/material-community';
 
 
@@ -38,6 +39,7 @@ export default function App() {
     } else {
         return (
             <SafeAreaProvider>
+                {/* @ts-ignore - Provider children prop type issue with react-native-paper v5 */}
                 <Provider 
                     settings={{
                         icon: ({name, ...props}: { name: any }) => <MaterialCommunityIcons name={name} {...props} />,

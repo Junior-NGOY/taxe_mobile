@@ -43,58 +43,110 @@ export const Provider: React.FC<{ children: ReactNode }> = (props) => {
     }
 
     const connection = async (user: { login?: string, password: string }) => { 
+        console.log('🔐 [Auth] Démarrage connexion...');
+        const startTime = Date.now();
+        
         if(mode === 'perceptor') {
             const account = session?.account;
             if(account) {
+                console.log('👤 [Auth] Mode percepteur, vérification mot de passe...');
+                
                 // Optimisation: vérifier d'abord le texte brut avant bcrypt (plus rapide)
                 let isPasswordValid = false;
                 
                 if(account.password.startsWith('$2a$') || account.password.startsWith('$2b$')) {
+                    console.log('🔒 [Auth] Mot de passe haché détecté, utilisation bcrypt...');
+                    const bcryptStart = Date.now();
+                    
                     // Bcrypt comparison uniquement si nécessaire
                     isPasswordValid = await bcrypt.compare(user.password, account.password);
+                    
+                    const bcryptDuration = Date.now() - bcryptStart;
+                    console.log(`⏱️ [Auth] Bcrypt duration: ${bcryptDuration}ms`);
+                    
+                    if(bcryptDuration > 3000) {
+                        console.warn(`⚠️ [Auth] BCRYPT TRÈS LENT! ${bcryptDuration}ms - Considérer migration vers texte brut en local`);
+                    }
                 } else {
+                    console.log('⚡ [Auth] Comparaison directe (rapide)');
                     // Comparaison directe (instantanée)
                     isPasswordValid = account.password === user.password;
                 }
                 
                 if(isPasswordValid) {
                     setAccount(account);
+                    const totalDuration = Date.now() - startTime;
+                    console.log(`✅ [Auth] Connexion réussie en ${totalDuration}ms`);
                 } else {
+                    console.log('❌ [Auth] Mot de passe incorrect');
                     throw new Error('Mot de passe incorrecte');
                 }
             } else {
+                console.log('❌ [Auth] Aucun compte percepteur trouvé');
                 throw new Error('Aucun compte percepteur');
             }
         } else if(mode === 'supervisor') {
+            console.log('👔 [Auth] Mode superviseur, recherche utilisateur...');
+            
             if(!user.login)
                 throw new Error('Login incomplet');
             else if(!user.password)
                 throw new Error('Mot de passe incomplet');
             else {
-                if(users.length === 0)
+                if(users.length === 0) {
+                    console.log('❌ [Auth] Aucun superviseur synchronisé');
                     throw Error('Aucun superviseur enregistré, veuillez synchroniser');
+                }
+                
+                console.log(`🔍 [Auth] Recherche parmi ${users.length} superviseurs...`);
+                const searchStart = Date.now();
                 
                 // Recherche optimisée par username
                 const supervisor = users.find(item => item.username === user.login);
                 
+                const searchDuration = Date.now() - searchStart;
+                console.log(`⏱️ [Auth] Recherche duration: ${searchDuration}ms`);
+                
+                if(searchDuration > 1000) {
+                    console.warn(`⚠️ [Auth] RECHERCHE LENTE! ${searchDuration}ms avec ${users.length} superviseurs`);
+                }
+                
                 if(!supervisor) {
+                    console.log(`❌ [Auth] Utilisateur "${user.login}" non trouvé`);
                     throw new Error("Utilisateur non trouvé");
                 }
+                
+                console.log(`✅ [Auth] Superviseur trouvé: ${supervisor.username}`);
+                console.log('🔒 [Auth] Vérification mot de passe...');
                 
                 // Optimisation: vérifier d'abord le texte brut avant bcrypt (plus rapide)
                 let isPasswordValid = false;
                 
                 if(supervisor.password.startsWith('$2a$') || supervisor.password.startsWith('$2b$')) {
+                    console.log('🔒 [Auth] Mot de passe haché détecté, utilisation bcrypt...');
+                    const bcryptStart = Date.now();
+                    
                     // Bcrypt comparison uniquement si nécessaire
                     isPasswordValid = await bcrypt.compare(user.password, supervisor.password);
+                    
+                    const bcryptDuration = Date.now() - bcryptStart;
+                    console.log(`⏱️ [Auth] Bcrypt duration: ${bcryptDuration}ms`);
+                    
+                    if(bcryptDuration > 3000) {
+                        console.warn(`⚠️ [Auth] BCRYPT TRÈS LENT! ${bcryptDuration}ms - Appareil faible CPU détecté`);
+                    }
                 } else {
+                    console.log('⚡ [Auth] Comparaison directe (rapide)');
                     // Comparaison directe (instantanée)
                     isPasswordValid = supervisor.password === user.password;
                 }
                 
                 if(isPasswordValid) {
                     setAccount(supervisor);
+                    const totalDuration = Date.now() - startTime;
+                    console.log(`✅ [Auth] Connexion superviseur réussie en ${totalDuration}ms`);
                 } else {
+                    console.log('❌ [Auth] Mot de passe incorrect');
                     throw new Error("Échec d'authentification");
                 }
             }

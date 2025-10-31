@@ -16,8 +16,7 @@ import { PROD_BASE_URL, TEST_BASE_URL, LOCAL_BASE_URL } from '../api/config';
 import { FeedBackContext } from '../feedback/context';
 import { usePrint } from '../invoice-templates/usePrint';
 import { clearAllStorage, clearDataOnly } from '../local-storage';
-import { AuthContext } from '../context/authContext';
-import { SupervisorPasswordModal } from '../components/SupervisorPasswordModal';
+import { AdminPasswordModal } from '../components/AdminPasswordModal';
 // @ts-ignore - Icon library type issue
 import MaterialCommunityIcons from '@svgr-iconkit/material-community';
 import * as Updates from 'expo-updates';
@@ -27,55 +26,20 @@ export default function SettingsScreen() {
     const { synchronise, loading } = useSynchronise();
     const { apiUrl, device } = React.useContext(LocalDataContext);
     const { print } = usePrint();
-    const { mode, supervisors } = React.useContext(AuthContext);
 
     // États pour les modals de confirmation
     const [clearDataModalVisible, setClearDataModalVisible] = React.useState(false);
     const [resetAppModalVisible, setResetAppModalVisible] = React.useState(false);
 
     const handleClearData = () => {
-        // Vérifier si on est en mode superviseur
-        if (mode !== 'supervisor') {
-            communicate({ 
-                content: '🔒 Action réservée aux superviseurs uniquement', 
-                duration: 3000 
-            });
-            return;
-        }
-
-        // Vérifier qu'il y a des superviseurs enregistrés
-        if (supervisors.length === 0) {
-            communicate({ 
-                content: '⚠️ Aucun superviseur enregistré. Veuillez synchroniser d\'abord.', 
-                duration: 4000 
-            });
-            return;
-        }
-
-        // Ouvrir le modal de confirmation avec mot de passe
+        // Action réservée à l'administrateur uniquement
+        // Ouvrir le modal de confirmation avec authentification admin
         setClearDataModalVisible(true);
     };
 
     const handleResetApp = () => {
-        // Vérifier si on est en mode superviseur
-        if (mode !== 'supervisor') {
-            communicate({ 
-                content: '🔒 Action réservée aux superviseurs uniquement', 
-                duration: 3000 
-            });
-            return;
-        }
-
-        // Vérifier qu'il y a des superviseurs enregistrés
-        if (supervisors.length === 0) {
-            communicate({ 
-                content: '⚠️ Aucun superviseur enregistré. Veuillez synchroniser d\'abord.', 
-                duration: 4000 
-            });
-            return;
-        }
-
-        // Ouvrir le modal de confirmation avec mot de passe
+        // Action réservée à l'administrateur uniquement
+        // Ouvrir le modal de confirmation avec authentification admin
         setResetAppModalVisible(true);
     };
 
@@ -123,17 +87,21 @@ export default function SettingsScreen() {
 
     return (
         <View style={styles.containerStyle}>
+            {/* @ts-ignore - React Native Paper type issue */}
             <Provider>
                 <Card style={{flex: 1}}>
                     <Card.Content>
                         <Title style={styles.title}>Details du terminal</Title>
                         <View style={styles.detail}>
+                            {/* @ts-ignore */}
                             <Chip>Serie: {device?.code}</Chip>
                         </View>
                         <View style={styles.detail}>
+                            {/* @ts-ignore */}
                             <Chip>Site: {device?.site?.name}</Chip>
                         </View>
                         <View style={styles.detail}>
+                            {/* @ts-ignore */}
                             <Chip>Mode: { 
                                 apiUrl === PROD_BASE_URL ? 'Production' : 
                                 apiUrl === LOCAL_BASE_URL ? 'Local' : 'Test'
@@ -166,17 +134,15 @@ export default function SettingsScreen() {
                         />
                         <IconButton
                             icon={(props) => <MaterialCommunityIcons name='delete-sweep' {...props} />}
-                            iconColor={mode === 'supervisor' ? Colors.orange600 : Colors.grey400}
+                            iconColor={Colors.orange600}
                             size={30}
                             onPress={handleClearData}
-                            disabled={mode !== 'supervisor'}
                         />
                         <IconButton
                             icon={(props) => <MaterialCommunityIcons name='delete-forever' {...props} />}
-                            iconColor={mode === 'supervisor' ? Colors.red600 : Colors.grey400}
+                            iconColor={Colors.red600}
                             size={30}
                             onPress={handleResetApp}
-                            disabled={mode !== 'supervisor'}
                         />
                     </Card.Content>
                     <Card.Content>
@@ -185,25 +151,23 @@ export default function SettingsScreen() {
                 </Card>
 
                 {/* Modal de confirmation pour suppression des données */}
-                <SupervisorPasswordModal
+                <AdminPasswordModal
                     visible={clearDataModalVisible}
                     onDismiss={() => setClearDataModalVisible(false)}
                     onConfirm={executeClearData}
                     title="🗑️ Réinitialiser les données"
-                    message="Confirmez avec votre mot de passe superviseur pour supprimer toutes les données synchronisées. Le code device sera conservé."
+                    message="⚠️ Authentification administrateur requise. Cette action supprimera toutes les données synchronisées. Le code device sera conservé."
                     confirmButtonText="Supprimer les données"
-                    supervisors={supervisors}
                 />
 
                 {/* Modal de confirmation pour reset complet */}
-                <SupervisorPasswordModal
+                <AdminPasswordModal
                     visible={resetAppModalVisible}
                     onDismiss={() => setResetAppModalVisible(false)}
                     onConfirm={executeResetApp}
                     title="⚠️ RESET COMPLET"
-                    message="⚠️ ATTENTION : Cette action supprimera TOUT (y compris le code device). L'app sera comme neuve. Confirmez avec votre mot de passe superviseur."
+                    message="⚠️ ATTENTION : Cette action supprimera TOUT (y compris le code device). L'app sera comme neuve. Authentification administrateur requise."
                     confirmButtonText="🔥 TOUT SUPPRIMER"
-                    supervisors={supervisors}
                 />
             </Provider>
         </View>

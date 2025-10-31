@@ -11,22 +11,14 @@ import {
     MD2Colors,
     ProgressBar 
 } from 'react-native-paper';
-import bcrypt from 'bcryptjs';
 
-interface SupervisorPasswordModalProps {
+interface AdminPasswordModalProps {
     visible: boolean;
     onDismiss: () => void;
     onConfirm: () => void | Promise<void>;
     title: string;
     message: string;
     confirmButtonText?: string;
-    mode?: 'supervisor' | 'admin'; // Nouveau: mode d'authentification
-    supervisors?: Array<{
-        id: string;
-        username?: string;
-        password: string;
-        person?: { name: string };
-    }>;
 }
 
 // Credentials admin hardcodés
@@ -34,23 +26,19 @@ const ADMIN_EMAIL = 'sidpaie02@gmail.com';
 const ADMIN_PASSWORD = 's@&paie#02';
 
 /**
- * Modal de confirmation avec vérification du mot de passe
- * Supporte 2 modes:
- * - 'supervisor': Authentification via superviseurs synchronisés
- * - 'admin': Authentification via credentials hardcodés (pour réinitialisation)
+ * Modal de confirmation avec authentification administrateur
+ * Pour les actions critiques de réinitialisation (réservées à l'admin uniquement)
  */
-export const SupervisorPasswordModal: React.FC<SupervisorPasswordModalProps> = ({
+export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({
     visible,
     onDismiss,
     onConfirm,
     title,
     message,
-    confirmButtonText = 'Confirmer',
-    mode = 'supervisor',
-    supervisors = []
+    confirmButtonText = 'Confirmer'
 }) => {
     const [password, setPassword] = useState('');
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -58,56 +46,32 @@ export const SupervisorPasswordModal: React.FC<SupervisorPasswordModalProps> = (
     const handleConfirm = async () => {
         setError('');
         
-        if (!username.trim()) {
-            setError('Veuillez entrer votre nom d\'utilisateur');
+        if (!email.trim()) {
+            setError('Veuillez entrer l\'email administrateur');
             return;
         }
 
         if (!password.trim()) {
-            setError('Veuillez entrer votre mot de passe');
-            return;
-        }
-
-        if (!supervisors || supervisors.length === 0) {
-            setError('Aucun superviseur enregistré');
+            setError('Veuillez entrer le mot de passe');
             return;
         }
 
         setLoading(true);
 
         try {
-            // Chercher le superviseur par username
-            const supervisor = supervisors.find(s => s.username === username.trim());
-
-            if (!supervisor) {
-                setError('Utilisateur non trouvé');
+            // Vérifier les credentials admin (comparaison en texte brut)
+            if (email.trim() !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+                setError('Email ou mot de passe administrateur incorrect');
                 setLoading(false);
                 return;
             }
 
-            // Vérifier le mot de passe (supporte texte brut et bcrypt)
-            let isPasswordValid = false;
-
-            if (supervisor.password.startsWith('$2a$') || supervisor.password.startsWith('$2b$')) {
-                // Mot de passe hashé avec bcrypt
-                isPasswordValid = await bcrypt.compare(password, supervisor.password);
-            } else {
-                // Mot de passe en texte brut
-                isPasswordValid = supervisor.password === password;
-            }
-
-            if (!isPasswordValid) {
-                setError('Mot de passe incorrect');
-                setLoading(false);
-                return;
-            }
-
-            // Mot de passe correct, exécuter l'action
+            // Credentials corrects, exécuter l'action
             await onConfirm();
             
             // Réinitialiser et fermer
             setPassword('');
-            setUsername('');
+            setEmail('');
             setError('');
             setLoading(false);
             onDismiss();
@@ -119,7 +83,7 @@ export const SupervisorPasswordModal: React.FC<SupervisorPasswordModalProps> = (
 
     const handleCancel = () => {
         setPassword('');
-        setUsername('');
+        setEmail('');
         setError('');
         setLoading(false);
         onDismiss();
@@ -137,18 +101,23 @@ export const SupervisorPasswordModal: React.FC<SupervisorPasswordModalProps> = (
                     <Card.Content>
                         <Text style={styles.message}>{message}</Text>
                         
+                        <Text style={styles.adminLabel}>
+                            🔐 Authentification Administrateur
+                        </Text>
+
                         <TextInput
-                            label="Nom d'utilisateur superviseur"
-                            value={username}
-                            onChangeText={setUsername}
+                            label="Email administrateur"
+                            value={email}
+                            onChangeText={setEmail}
                             mode="outlined"
                             autoCapitalize="none"
+                            keyboardType="email-address"
                             disabled={loading}
                             style={styles.input}
                         />
 
                         <TextInput
-                            label="Mot de passe superviseur"
+                            label="Mot de passe administrateur"
                             value={password}
                             onChangeText={setPassword}
                             mode="outlined"
@@ -156,17 +125,24 @@ export const SupervisorPasswordModal: React.FC<SupervisorPasswordModalProps> = (
                             disabled={loading}
                             right={
                                 <TextInput.Icon 
-                                    icon={showPassword ? "eye-off" : "eye"}
+                                    icon={showPassword ? 'eye-off' : 'eye'}
                                     onPress={() => setShowPassword(!showPassword)}
                                 />
                             }
                             style={styles.input}
-                            onSubmitEditing={handleConfirm}
                         />
 
                         {error ? (
-                            <Text style={styles.error}>{error}</Text>
+                            <Text style={styles.error}>❌ {error}</Text>
                         ) : null}
+
+                        {loading && (
+                            <ProgressBar 
+                                indeterminate 
+                                color={MD2Colors.red600}
+                                style={styles.progress}
+                            />
+                        )}
                     </Card.Content>
 
                     <Card.Actions style={styles.actions}>
@@ -180,21 +156,12 @@ export const SupervisorPasswordModal: React.FC<SupervisorPasswordModalProps> = (
                         <Button 
                             mode="contained" 
                             onPress={handleConfirm}
-                            loading={loading}
                             disabled={loading}
-                            buttonColor={MD2Colors.red600}
+                            buttonColor={MD2Colors.red700}
                         >
                             {confirmButtonText}
                         </Button>
                     </Card.Actions>
-
-                    {loading && (
-                        <ProgressBar 
-                            indeterminate 
-                            color={MD2Colors.red600} 
-                            style={styles.progress}
-                        />
-                    )}
                 </Card>
             </Modal>
         </Portal>
@@ -206,31 +173,36 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     title: {
+        color: MD2Colors.red700,
         fontSize: 20,
         fontWeight: 'bold',
     },
     message: {
-        fontSize: 16,
+        fontSize: 15,
         marginBottom: 20,
         color: MD2Colors.grey800,
+        lineHeight: 22,
+    },
+    adminLabel: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: MD2Colors.red700,
+        marginBottom: 15,
+        textAlign: 'center',
     },
     input: {
-        marginBottom: 12,
+        marginBottom: 15,
     },
     error: {
         color: MD2Colors.red600,
+        marginTop: 10,
         fontSize: 14,
-        marginTop: 8,
-        textAlign: 'center',
-    },
-    actions: {
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingTop: 8,
     },
     progress: {
-        height: 4,
-        borderBottomLeftRadius: 4,
-        borderBottomRightRadius: 4,
+        marginTop: 10,
+    },
+    actions: {
+        justifyContent: 'flex-end',
+        paddingTop: 10,
     },
 });

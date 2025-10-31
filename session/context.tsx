@@ -9,6 +9,7 @@ export const SessionContext = React.createContext<ContextData>({
     create: (session: Session) => {},
     close: () => {},
     addMissing: (data: { missing?: number, invoiceMissing?: number }) => {},
+    extendSession: (additionalDays: number) => {},
     loading: false,
 });
 
@@ -58,6 +59,24 @@ export const Provider: React.FC<{ children: ReactNode }> = (props) => {
         }
     };
 
+    const extendSession = (additionalDays: number) => {
+        if (!session) return;
+        
+        try {
+            const currentMaxDays = session.maxDays ?? 2;
+            const newMaxDays = currentMaxDays + additionalDays;
+            const extendedSession = { ...session, maxDays: newMaxDays };
+            
+            setSession(extendedSession);
+            persist<Session>({ value: extendedSession, table: Table.sessionParking })
+                .catch((error) => {
+                    throw new Error('Impossible de prolonger la session');
+                });
+        } catch (error) {
+            throw new Error('Impossible de prolonger la session');
+        }
+    };
+
     React.useEffect(() => {
         localStorage(Table.sessionParking, false)
             .then((value) => {
@@ -70,7 +89,7 @@ export const Provider: React.FC<{ children: ReactNode }> = (props) => {
 
     return (
         <SessionContext.Provider 
-            value={{ session, create, close, addMissing, loading }}
+            value={{ session, create, close, addMissing, extendSession, loading }}
         >
             {props.children}
         </SessionContext.Provider>
@@ -81,7 +100,8 @@ type ContextData = {
     session?: Session,
     create: (session: Session) => void,
     close: () => void,
-    addMissing: (data: { missing?: number, invoiceMissing?: number }) => void, 
+    addMissing: (data: { missing?: number, invoiceMissing?: number }) => void,
+    extendSession: (additionalDays: number) => void,
     loading: boolean
 };
 
@@ -92,6 +112,7 @@ export type Session = {
     account?: Account,
     missing?: number,
     invoiceMissing?: number,
+    maxDays?: number, // Nombre de jours maximum avant blocage
     parking?: {
         id: number|string;
         name: string;

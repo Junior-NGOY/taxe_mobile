@@ -32,16 +32,20 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.jchmasirika.taxeparking2",
-      "versionCode": 10,
+      "package": "com.sid.taxeparking",
+      "versionCode": 13,
       "permissions": [
         "CAMERA",
         "BLUETOOTH",
-        "BLUETOOTH_ADMIN"
+        "BLUETOOTH_ADMIN",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
       ],
       "minSdkVersion": 21,
-      "targetSdkVersion": 31,
-      "compileSdkVersion": 34
+      "targetSdkVersion": 23,
+      "compileSdkVersion": 28
     },
     "web": {
       "favicon": "./assets/images/favicon.ico",
