@@ -11,6 +11,8 @@ import {
     MD2Colors,
     ProgressBar 
 } from 'react-native-paper';
+// @ts-ignore - Icon library type issue
+import MaterialCommunityIcons from '@svgr-iconkit/material-community';
 
 interface AdminPasswordModalProps {
     visible: boolean;
@@ -19,6 +21,8 @@ interface AdminPasswordModalProps {
     title: string;
     message: string;
     confirmButtonText?: string;
+    icon?: string; // Nom de l'icône MaterialCommunityIcons
+    iconColor?: string; // Couleur de l'icône
 }
 
 // Credentials admin hardcodés
@@ -35,7 +39,9 @@ export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({
     onConfirm,
     title,
     message,
-    confirmButtonText = 'Confirmer'
+    confirmButtonText = 'Confirmer',
+    icon = 'alert-circle',
+    iconColor = MD2Colors.red700
 }) => {
     const [password, setPassword] = useState('');
     const [email, setEmail] = useState('');
@@ -97,13 +103,31 @@ export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({
                 contentContainerStyle={styles.modal}
             >
                 <Card>
-                    <Card.Title title={title} titleStyle={styles.title} />
+                    <Card.Title 
+                        title={title} 
+                        titleStyle={styles.title}
+                        left={(props) => (
+                            <MaterialCommunityIcons 
+                                name={icon} 
+                                size={32} 
+                                color={iconColor}
+                                {...props}
+                            />
+                        )}
+                    />
                     <Card.Content>
                         <Text style={styles.message}>{message}</Text>
                         
-                        <Text style={styles.adminLabel}>
-                            🔐 Authentification Administrateur
-                        </Text>
+                        <View style={styles.adminLabelContainer}>
+                            <MaterialCommunityIcons 
+                                name="shield-lock" 
+                                size={20} 
+                                color={MD2Colors.red700}
+                            />
+                            <Text style={styles.adminLabel}>
+                                Authentification Administrateur
+                            </Text>
+                        </View>
 
                         <TextInput
                             label="Email administrateur"
@@ -147,19 +171,21 @@ export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({
 
                     <Card.Actions style={styles.actions}>
                         <Button 
-                            mode="outlined" 
-                            onPress={handleCancel}
-                            disabled={loading}
-                        >
-                            Annuler
-                        </Button>
-                        <Button 
                             mode="contained" 
                             onPress={handleConfirm}
                             disabled={loading}
                             buttonColor={MD2Colors.red700}
+                            style={styles.button}
                         >
                             {confirmButtonText}
+                        </Button>
+                        <Button 
+                            mode="outlined" 
+                            onPress={handleCancel}
+                            disabled={loading}
+                            style={styles.button}
+                        >
+                            Annuler
                         </Button>
                     </Card.Actions>
                 </Card>
@@ -183,12 +209,17 @@ const styles = StyleSheet.create({
         color: MD2Colors.grey800,
         lineHeight: 22,
     },
+    adminLabelContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 15,
+        gap: 8,
+    },
     adminLabel: {
         fontSize: 14,
         fontWeight: 'bold',
         color: MD2Colors.red700,
-        marginBottom: 15,
-        textAlign: 'center',
     },
     input: {
         marginBottom: 15,
@@ -202,7 +233,12 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     actions: {
-        justifyContent: 'flex-end',
-        paddingTop: 10,
+        flexDirection: 'column',
+        paddingHorizontal: 10,
+        paddingVertical: 10,
+    },
+    button: {
+        marginVertical: 5,
+        width: '100%',
     },
 });

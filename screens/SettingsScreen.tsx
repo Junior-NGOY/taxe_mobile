@@ -155,9 +155,11 @@ export default function SettingsScreen() {
                     visible={clearDataModalVisible}
                     onDismiss={() => setClearDataModalVisible(false)}
                     onConfirm={executeClearData}
-                    title="🗑️ Réinitialiser les données"
-                    message="⚠️ Authentification administrateur requise. Cette action supprimera toutes les données synchronisées. Le code device sera conservé."
+                    title="Supprimer les données"
+                    message="Cette action supprimera toutes les données synchronisées (factures, sessions, percepteurs, parkings, etc.) mais conservera le code de l'appareil. L'authentification administrateur est requise."
                     confirmButtonText="Supprimer les données"
+                    icon="database"
+                    iconColor={Colors.orange600}
                 />
 
                 {/* Modal de confirmation pour reset complet */}
@@ -165,9 +167,11 @@ export default function SettingsScreen() {
                     visible={resetAppModalVisible}
                     onDismiss={() => setResetAppModalVisible(false)}
                     onConfirm={executeResetApp}
-                    title="⚠️ RESET COMPLET"
-                    message="⚠️ ATTENTION : Cette action supprimera TOUT (y compris le code device). L'app sera comme neuve. Authentification administrateur requise."
-                    confirmButtonText="🔥 TOUT SUPPRIMER"
+                    title="Réinitialisation complète"
+                    message="ATTENTION : Cette action supprimera TOUTES les données y compris le code de l'appareil. L'application sera réinitialisée comme si elle était nouvellement installée. Cette action est irréversible. L'authentification administrateur est requise."
+                    confirmButtonText="Tout supprimer"
+                    icon="delete-forever"
+                    iconColor={Colors.red600}
                 />
             </Provider>
         </View>

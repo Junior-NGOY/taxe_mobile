@@ -3,7 +3,7 @@
     "name": "SID Taxe Parking",
     "description": "Application de suivi des taxes avec prise en charge du template dynamic",
     "slug": "sid-taxe-parking",
-    "version": "3.3.0",
+    "version": "3.3.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "sidtaxeparking",
@@ -33,7 +33,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.sid.taxeparking",
-      "versionCode": 13,
+      "versionCode": 14,
       "permissions": [
         "CAMERA",
         "BLUETOOTH",
@@ -44,7 +44,7 @@
         "ACCESS_NETWORK_STATE"
       ],
       "minSdkVersion": 21,
-      "targetSdkVersion": 23,
+      "targetSdkVersion": 22,
       "compileSdkVersion": 28
     },
     "web": {

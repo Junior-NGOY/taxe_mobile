@@ -1,0 +1,27 @@
+// Configuration Gradle pour compatibilité Funtouch OS / Android 6.0.1
+// À ajouter dans android/app/build.gradle si vous éjectez le projet
+
+android {
+    // Force la compatibilité avec Android 6.0.1
+    defaultConfig {
+        minSdkVersion 21
+        targetSdkVersion 22  // Pas 23+ pour Funtouch OS
+        multiDexEnabled true // Important pour Vivo
+    }
+    
+    // Désactiver les optimisations qui peuvent causer des problèmes sur Vivo
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+    
+    // Force les anciennes versions des bibliothèques Android
+    configurations.all {
+        resolutionStrategy {
+            force 'com.android.support:support-v4:28.0.0'
+            force 'com.android.support:appcompat-v7:28.0.0'
+        }
+    }
+}

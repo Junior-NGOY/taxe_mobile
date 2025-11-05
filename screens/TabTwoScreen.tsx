@@ -67,6 +67,35 @@ export default function TabTwoScreen({ navigation } : { navigation: { navigate: 
     };
 
     const handleMissing = (missing: number, invoiceMissing: number) => {
+        const totalAmount = amount();
+        
+        // Validation : vérifier que missing ne dépasse pas le total
+        if (missing > totalAmount) {
+            communicate({ 
+                content: `❌ Le manquant (${missing} Fc) ne peut pas dépasser le montant total (${totalAmount} Fc)`, 
+                duration: 5000 
+            });
+            return;
+        }
+        
+        // Validation : vérifier que invoiceMissing ne dépasse pas le total
+        if (invoiceMissing > totalAmount) {
+            communicate({ 
+                content: `❌ Les factures ratées (${invoiceMissing} Fc) ne peuvent pas dépasser le montant total (${totalAmount} Fc)`, 
+                duration: 5000 
+            });
+            return;
+        }
+        
+        // Validation : vérifier que la somme ne dépasse pas le total
+        if ((missing + invoiceMissing) > totalAmount) {
+            communicate({ 
+                content: `❌ La somme du manquant (${missing} Fc) et des factures ratées (${invoiceMissing} Fc) ne peut pas dépasser le montant total (${totalAmount} Fc)`, 
+                duration: 5000 
+            });
+            return;
+        }
+        
         addMissing({ missing, invoiceMissing });
         hideModal();
     };
@@ -356,13 +385,24 @@ export default function TabTwoScreen({ navigation } : { navigation: { navigate: 
                                 <Card>
                                     <Card.Title title={'Manquant (Fc)'}/>
                                     <Card.Content>
+                                        <Text style={{ textAlign: 'center', marginBottom: 10, color: Colors.blue700 }}>
+                                            Montant total: {amount()} Fc
+                                        </Text>
                                         <TextInput
                                             value={missing + ''}
                                             keyboardType={'numeric'}
                                             onChangeText={(text) => {
-                                                let missing = parseFloat(text);
-                                                if(missing) setMissing(missing);
-                                                else {
+                                                let missingValue = parseFloat(text);
+                                                if(missingValue) {
+                                                    const totalAmount = amount();
+                                                    if (missingValue > totalAmount) {
+                                                        communicate({ 
+                                                            content: `⚠️ Le manquant ne peut pas dépasser ${totalAmount} Fc`, 
+                                                            duration: 3000 
+                                                        });
+                                                    }
+                                                    setMissing(missingValue);
+                                                } else {
                                                     setMissing(0);
                                                 }
                                             }}
@@ -370,24 +410,44 @@ export default function TabTwoScreen({ navigation } : { navigation: { navigate: 
                                             autoFocus={true}
                                             label='Manquant'
                                             style={{marginBottom: 15}}
+                                            error={missing > amount()}
                                             />
                                         <TextInput
                                             value={invoiceMissing+''}
                                             keyboardType={'numeric'}
                                             onChangeText={(text) => {
-                                                let missing = parseFloat(text);
-                                                if(missing) setInvoiceMissing(missing);
-                                                else {
+                                                let missingValue = parseFloat(text);
+                                                if(missingValue) {
+                                                    const totalAmount = amount();
+                                                    if (missingValue > totalAmount) {
+                                                        communicate({ 
+                                                            content: `⚠️ Les factures ratées ne peuvent pas dépasser ${totalAmount} Fc`, 
+                                                            duration: 3000 
+                                                        });
+                                                    }
+                                                    setInvoiceMissing(missingValue);
+                                                } else {
                                                     setInvoiceMissing(0);
                                                 }
                                             }}
                                             mode={'outlined'}
                                             label='Factures ratés'
+                                            error={invoiceMissing > amount()}
                                             />
+                                        {(missing + invoiceMissing) > amount() && (
+                                            <Text style={{ color: Colors.red600, marginTop: 10, textAlign: 'center' }}>
+                                                ❌ Total ({missing + invoiceMissing} Fc) supérieur au montant ({amount()} Fc)
+                                            </Text>
+                                        )}
                                     </Card.Content>
                                     <Card.Actions style={{justifyContent: 'flex-end'}}>
                                         <Button onPress={() => hideModal()}>Annuler</Button>
-                                        <Button onPress={() => handleMissing(missing, invoiceMissing)}>Valider</Button>
+                                        <Button 
+                                            onPress={() => handleMissing(missing, invoiceMissing)}
+                                            disabled={(missing + invoiceMissing) > amount()}
+                                        >
+                                            Valider
+                                        </Button>
                                     </Card.Actions>
                                 </Card>
                             )}
